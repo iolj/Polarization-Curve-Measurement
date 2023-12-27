@@ -6,14 +6,13 @@ import threading
 import tkinter as tk
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-
 # Initialize global variables
 stop_flag = False
-current = [0.1, 0.2, 0.3]
-voltage = np.array(0)
+voltage = []
 start_time = 0.0
-current = [0.1, 0.2, 0.3, 0.4, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0, 9.5, 10.0, 
+current = [0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0, 9.5, 10.0, 
            10.5, 11.0, 11.5, 12.0, 12.5, 13.0, 13.5, 14.0, 14.5, 15.0, 17.5, 20.0, 22.5, 25.0, 27.5, 30.0, 32.5, 35.0, 37.5, 40.0]
+currentPlot = []
 voltageLimit = 2.1
 activationTime = 1
 time_interval = 3
@@ -30,24 +29,23 @@ def start_measurement():
 def stop_measurement():
     global stop_flag, voltage
     print('Manual stop, ending the program...')
-    voltage = np.trim_zeros(voltage)
     print(voltage)
     df = pd.DataFrame(voltage)
     excel_file = 'output.xlsx'
     df.to_excel(excel_file, index=False, header=False)
     stop_flag = True
-
+    
 def update_plot():
-    global voltage, ax, canvas
+    global voltage, ax, canvas, current, currentPlot
     ax.clear()
-    ax.plot(voltage)
+    ax.plot(currentPlot, voltage)
     ax.set_title("Polarization Measurement")
     ax.set_xlabel("Current Density (mA/cm²)")
     ax.set_ylabel("Voltage (V)")
     canvas.draw()
 
 def measurement_loop():
-    global stop_flag, voltage, start_time, current
+    global stop_flag, voltage, start_time, current, currentPlot
     i = 0
     while not stop_flag and i < len(current):
         measured_voltage = 1
@@ -55,10 +53,11 @@ def measurement_loop():
             elapsed_time = time.time() - start_time
             if elapsed_time >= time_interval:
                 measured_voltage = 1
-                voltage = np.append(voltage, measured_voltage)
+                voltage.append(measured_voltage)
                 print(date.today(), time.strftime("%H:%M:%S", time.localtime()))
-                print(f'{str(current[i])}A {str(voltage[voltage.size - 1])}V')
+                print(f'{str(current[i])}A {str(voltage[i])}V')
                 start_time = time.time()  # Reset the start time
+                currentPlot.append(current[i] * 40)
                 i += 1
 
                 # Update the plot with the latest data in the main thread
@@ -68,7 +67,6 @@ def measurement_loop():
             time.sleep(0.1)
         else:
             print('Exceed voltage limit, ending the program...')
-            voltage = np.trim_zeros(voltage)
             print(voltage)
             df = pd.DataFrame(voltage)
             excel_file = 'output.xlsx'
@@ -77,7 +75,7 @@ def measurement_loop():
     stop_flag = True
     # When the loop exits, you can quit the Tkinter application
     root.quit()
-
+    
 # Create the main application window
 root = tk.Tk()
 root.title("Measurement Program")
@@ -94,6 +92,7 @@ fig, ax = plt.subplots(figsize=(6, 4))
 ax.set_title("Polarization Measurement")
 ax.set_xlabel("Current Density (mA/cm²)")
 ax.set_ylabel("Voltage (V)")
+ax.set_xlim(0, 1600)
 
 # Create a Matplotlib canvas to embed the figure in the Tkinter GUI
 canvas = FigureCanvasTkAgg(fig, master=root)
