@@ -19,6 +19,15 @@ current = [0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5
            8.0, 8.5, 9.0, 9.5, 10.0, 10.5, 11.0, 11.5, 12.0, 12.5, 13.0, 13.5, 14.0, 14.5, 15.0, 17.5, 20.0, 22.5, 25.0, 27.5, 30.0, 32.5, 35.0, 37.5, 40.0]
 currentPlot = []
 
+def plot_settings():
+    ax.set_title("Polarization Curve")
+    ax.set_xlabel("Current Density (mA/cm²)")
+    ax.set_ylabel("Voltage (V)")
+    ax.set_xlim(0, 1600)
+    ax.set_ylim(1.0, 2.5)
+    ax.set_xticks(np.arange(0, 1700, 200))
+    ax.set_yticks(np.arange(1.0, 2.6, 0.5))
+    
 def load_current_from_csv():
     global current
     file_path = file_entry.get()
@@ -68,7 +77,11 @@ def start_measurement():
     measurement_thread = threading.Thread(target=measurement_loop)
     measurement_thread.daemon = True
     measurement_thread.start()
-
+    ax.clear()
+    # ax.plot(currentPlot, voltage, marker='o', markersize='8')
+    plot_settings()
+    canvas.draw()
+    
 def clear_terminal():
     terminal_output.delete(1.0, tk.END)  # Delete all text in the widget
         
@@ -104,13 +117,7 @@ def update_plot():
     global voltage, ax, canvas, current, currentPlot
     ax.clear()
     ax.plot(currentPlot, voltage, marker='o', markersize='8')
-    ax.set_title("Polarization Measurement")
-    ax.set_xlabel("Current Density (mA/cm²)")
-    ax.set_ylabel("Voltage (V)")
-    ax.set_xlim(0, 1600)
-    ax.set_ylim(1.0, 2.5)
-    ax.set_xticks(np.arange(0, 1700, 200))
-    ax.set_yticks(np.arange(1.0, 2.6, 0.5))
+    plot_settings()
     canvas.draw()
 
 def measurement_loop():
@@ -155,21 +162,21 @@ root.title("Measurement Program")
 
 # File import
 browse_button = tk.Button(root, text="Browse", command=browse_file)
-browse_button.pack()
+browse_button.grid(column=2, row=2)
 default_file_path = os.path.abspath("current.csv")
 file_label = tk.Label(root, text="CSV File Path:")
-file_label.pack()
+file_label.grid(column=0, row=2)
 
 file_entry = tk.Entry(root, width=40)
 file_entry.insert(0, default_file_path)  # Set the default file path
-file_entry.pack()
+file_entry.grid(column=1, row=2)
 
 load_button = tk.Button(root, text="Load CSV as current", command=load_current_from_csv)
-load_button.pack()
+load_button.grid(column=3, row=2)
 
 # Create button to submit values
 update_button = tk.Button(root, text="Update Values", command=update_values)
-update_button.pack()
+update_button.grid(column=0, row=7)
 
 # Create entry widgets
 default_values = load_default_values()
@@ -184,12 +191,12 @@ activateTime_label = Label(root, text="Activation Time (s):")
 interval_entry = Entry(root, textvariable=interval_value)
 interval_label = Label(root, text="Interval (s):")
 
-voltageLimit_label.pack()
-voltageLimit_entry.pack()
-activateTime_label.pack()
-activateTime_entry.pack()
-interval_label.pack()
-interval_entry.pack()
+voltageLimit_label.grid(column=0, row=4)
+voltageLimit_entry.grid(column=1, row=4)
+activateTime_label.grid(column=0, row=5)
+activateTime_entry.grid(column=1, row=5)
+interval_label.grid(column=0, row=6)
+interval_entry.grid(column=1, row=6)
 
 # Create a Treeview widget to display the table
 tree = ttk.Treeview(root, columns=("Current", "Voltage"), show="headings")
@@ -198,51 +205,45 @@ tree.heading("Voltage", text="Voltage")
 tree.column("Current", width=100, minwidth=50, stretch=False)
 tree.column("Voltage", width=100, minwidth=50, stretch=False)
 tree.bind("<Configure>", update_column_widths)
-tree.pack()
+tree.grid(column=5, row=0, rowspan=12, sticky="nsew", padx=5, pady=5)
 
 # Create a vertical scrollbar
 v_scrollbar = Scrollbar(root, orient="vertical", command=tree.yview)
 
 # Configure the Treeview to use the scrollbar
 tree.configure(yscrollcommand=v_scrollbar.set)
-
+root.grid_rowconfigure(0, weight=1)
+root.grid_columnconfigure(5, weight=1)
 # Pack the Treeview and scrollbar
-tree.pack(side="right", fill="both", expand=True)
-v_scrollbar.pack(side="right", fill="y")
+v_scrollbar.grid(column=7, row=0, rowspan=12, sticky="nsew")
 
 # Create Export voltage button
 export_button = tk.Button(root, text="Export Voltage", command=export_voltage)
-export_button.pack()
+export_button.grid(column=0, row=8)
 
 # Create clear terminal button
 clearTerminal_button = tk.Button(root, text="Clear Terminal", command=clear_terminal)
-clearTerminal_button.pack()
+clearTerminal_button.grid(column=0, row=9)
 
 # Create Start and Stop buttons
 start_button = tk.Button(root, text="Start Measurement", command=start_measurement)
-start_button.pack()
+start_button.grid(column=0, row=0)
 
 stop_button = tk.Button(root, text="Stop Measurement", command=stop_measurement)
-stop_button.pack()
+stop_button.grid(column=0, row=1)
 
 # Create terminal view
-terminal_output = scrolledtext.ScrolledText(root, wrap=tk.WORD, width=40, height=10)
-terminal_output.pack()
+terminal_output = scrolledtext.ScrolledText(root, wrap=tk.WORD)
+terminal_output.grid(column=0, row=11, columnspan=4, sticky="nsew", padx=5, pady=5)
 
 # Create a Matplotlib figure and axis for plotting
-fig, ax = plt.subplots(figsize=(6, 4))
-ax.set_title("Polarization Measurement")
-ax.set_xlabel("Current Density (mA/cm²)")
-ax.set_ylabel("Voltage (V)")
-ax.set_xlim(0, 1600)
-ax.set_ylim(1.0, 2.5)
-ax.set_xticks(np.arange(0, 1700, 200))
-ax.set_yticks(np.arange(1.0, 2.6, 0.5))
+fig, ax = plt.subplots(figsize=(8, 6))
+plot_settings()
 
 # Create a Matplotlib canvas to embed the figure in the Tkinter GUI
 canvas = FigureCanvasTkAgg(fig, master=root)
 canvas_widget = canvas.get_tk_widget()
-canvas_widget.pack()
+canvas_widget.grid(column=3, row=0, rowspan=10)
 
 # Start the Tkinter main loop
 root.mainloop()
