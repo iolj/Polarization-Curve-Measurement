@@ -1,5 +1,6 @@
 import time
 import json
+import os
 import pyvisa
 from datetime import date
 import numpy as np
@@ -14,10 +15,30 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 stop_flag = False
 voltage = []
 start_time = 0.0
-current = [0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0, 9.5, 10.0, 
-           10.5, 11.0, 11.5, 12.0, 12.5, 13.0, 13.5, 14.0, 14.5, 15.0, 17.5, 20.0, 22.5, 25.0, 27.5, 30.0, 32.5, 35.0, 37.5, 40.0]
+current = [0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 
+           8.0, 8.5, 9.0, 9.5, 10.0, 10.5, 11.0, 11.5, 12.0, 12.5, 13.0, 13.5, 14.0, 14.5, 15.0, 17.5, 20.0, 22.5, 25.0, 27.5, 30.0, 32.5, 35.0, 37.5, 40.0]
 currentPlot = []
 
+def load_current_from_csv():
+    global current
+    file_path = file_entry.get()
+    try:
+        with open(file_path, 'r') as file:
+            values_str = file.read()
+            values_list = values_str.split(',')
+            current.clear()
+            current = [float(value) for value in values_list]
+            print("Current list updated:", current)
+    except Exception as e:
+        print(f"Error reading CSV file: {e}")
+      
+def browse_file():
+    file_path = filedialog.askopenfilename(filetypes=[("CSV Files", "*.csv")])
+    if file_path:
+        file_entry.delete(0, tk.END)  # Clear the current text in the entry field
+        file_entry.insert(0, file_path)  # Set the selected file path
+        
+  
 def load_default_values():
     default_values = {}
     try:
@@ -98,6 +119,7 @@ def measurement_loop():
     while not stop_flag and i < len(current):
         measured_voltage = 1
         update_button.config(state=tk.DISABLED)
+        load_button.config(state=tk.DISABLED)
         if measured_voltage < float(voltageLimit_value.get()):
             elapsed_time = time.time() - start_time
             if elapsed_time >= float(interval_value.get()):
@@ -124,11 +146,26 @@ def measurement_loop():
             df.to_excel(excel_file, index=False, header=False)
             stop_flag = True
     update_button.config(state=tk.ACTIVE)
+    load_button.config(state=tk.ACTIVE)
     stop_flag = True
  
 # Create the main application window
 root = tk.Tk()
 root.title("Measurement Program")
+
+# File import
+browse_button = tk.Button(root, text="Browse", command=browse_file)
+browse_button.pack()
+default_file_path = os.path.abspath("current.csv")
+file_label = tk.Label(root, text="CSV File Path:")
+file_label.pack()
+
+file_entry = tk.Entry(root, width=40)
+file_entry.insert(0, default_file_path)  # Set the default file path
+file_entry.pack()
+
+load_button = tk.Button(root, text="Load CSV as current", command=load_current_from_csv)
+load_button.pack()
 
 # Create button to submit values
 update_button = tk.Button(root, text="Update Values", command=update_values)
