@@ -1,5 +1,6 @@
 import time
 import json
+import pyvisa
 from datetime import date
 import numpy as np
 import pandas as pd
@@ -95,6 +96,7 @@ def measurement_loop():
     i = 0
     while not stop_flag and i < len(current):
         measured_voltage = 1
+        update_button.config(state=tk.DISABLED)
         if measured_voltage < float(voltageLimit_value.get()):
             elapsed_time = time.time() - start_time
             if elapsed_time >= float(interval_value.get()):
@@ -120,9 +122,8 @@ def measurement_loop():
             excel_file = 'output.xlsx'
             df.to_excel(excel_file, index=False, header=False)
             stop_flag = True
+    update_button.config(state=tk.ACTIVE)
     stop_flag = True
-    # When the loop exits, you can quit the Tkinter application
-    # root.quit()
  
 # Create the main application window
 root = tk.Tk()
