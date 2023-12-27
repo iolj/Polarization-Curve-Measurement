@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import threading
 import tkinter as tk
-from tkinter import ttk, Scrollbar
+from tkinter import ttk, Scrollbar, scrolledtext
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 # Initialize global variables
@@ -29,8 +29,8 @@ def start_measurement():
 
 def stop_measurement():
     global stop_flag, voltage
-    print('Manual stop, ending the program...')
-    print(voltage)
+    terminal_output.insert(tk.END, f'Manual stop, ending the program...\n')
+    terminal_output.insert(tk.END, f'voltage = {voltage}')
     df = pd.DataFrame(voltage)
     excel_file = 'output.xlsx'
     df.to_excel(excel_file, index=False, header=False)
@@ -76,8 +76,10 @@ def measurement_loop():
             if elapsed_time >= time_interval:
                 measured_voltage = 1
                 voltage.append(measured_voltage)
-                print(date.today(), time.strftime("%H:%M:%S", time.localtime()))
-                print(f'{str(current[i])}A {str(voltage[i])}V')
+                # Append the measurement results to the terminal_output widget
+                terminal_output.insert(tk.END, f'{date.today()} {time.strftime("%H:%M:%S", time.localtime())}')
+                terminal_output.insert(tk.END, f' {str(current[i])}A {str(voltage[i])}V\n')
+                terminal_output.see(tk.END)  # Scroll to the end to show the latest output
                 start_time = time.time()  # Reset the start time
                 currentPlot.append(current[i] * 40)
                 update_table(i)
@@ -88,15 +90,15 @@ def measurement_loop():
             # Sleep for a short interval to allow the "stop_flag" check
             time.sleep(0.1)
         else:
-            print('Exceed voltage limit, ending the program...')
-            print(voltage)
+            terminal_output.insert(tk.END, f'Exceed voltage limit, ending the program...\n')
+            terminal_output.insert(tk.END, f'voltage = {voltage}')
             df = pd.DataFrame(voltage)
             excel_file = 'output.xlsx'
             df.to_excel(excel_file, index=False, header=False)
             stop_flag = True
     stop_flag = True
     # When the loop exits, you can quit the Tkinter application
-    root.quit()
+    # root.quit()
  
 # Create the main application window
 root = tk.Tk()
@@ -130,6 +132,10 @@ start_button.pack()
 
 stop_button = tk.Button(root, text="Stop Measurement", command=stop_measurement)
 stop_button.pack()
+
+# Create terminal view
+terminal_output = scrolledtext.ScrolledText(root, wrap=tk.WORD, width=40, height=10)
+terminal_output.pack()
 
 # Create a Matplotlib figure and axis for plotting
 fig, ax = plt.subplots(figsize=(6, 4))
