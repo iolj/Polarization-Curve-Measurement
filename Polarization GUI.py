@@ -42,6 +42,10 @@ def update_plot():
     ax.set_title("Polarization Measurement")
     ax.set_xlabel("Current Density (mA/cm²)")
     ax.set_ylabel("Voltage (V)")
+    ax.set_xlim(0, 1600)
+    ax.set_ylim(1.0, 2.5)
+    ax.set_xticks(np.arange(0, 1700, 200))
+    ax.set_yticks(np.arange(1.0, 2.6, 0.5))
     canvas.draw()
 
 def measurement_loop():
@@ -93,6 +97,9 @@ ax.set_title("Polarization Measurement")
 ax.set_xlabel("Current Density (mA/cm²)")
 ax.set_ylabel("Voltage (V)")
 ax.set_xlim(0, 1600)
+ax.set_ylim(1.0, 2.5)
+ax.set_xticks(np.arange(0, 1700, 200))
+ax.set_yticks(np.arange(1.0, 2.6, 0.5))
 
 # Create a Matplotlib canvas to embed the figure in the Tkinter GUI
 canvas = FigureCanvasTkAgg(fig, master=root)
