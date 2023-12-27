@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import threading
 import tkinter as tk
+from tkinter import ttk, Scrollbar
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 # Initialize global variables
@@ -35,10 +36,27 @@ def stop_measurement():
     df.to_excel(excel_file, index=False, header=False)
     stop_flag = True
     
+def update_table(i):
+    global voltage, current
+    tree.insert("", "end", values=(f"{current[i]} A", f"{voltage[i]} V"))
+
+def update_column_widths(event):
+    # Calculate the new width for each column based on the window width
+    window_width = event.width
+    new_column_width = (window_width - 4) // 2  # Subtract any padding or borders
+    tree.column("Current", width=new_column_width, minwidth=new_column_width, stretch=False)
+    tree.column("Voltage", width=new_column_width, minwidth=new_column_width, stretch=False)
+
+def export_voltage():
+    global voltage
+    df = pd.DataFrame(voltage)
+    excel_file = 'output.xlsx'
+    df.to_excel(excel_file, index=False, header=False)
+    
 def update_plot():
     global voltage, ax, canvas, current, currentPlot
     ax.clear()
-    ax.plot(currentPlot, voltage)
+    ax.plot(currentPlot, voltage, marker='o', markersize='8')
     ax.set_title("Polarization Measurement")
     ax.set_xlabel("Current Density (mA/cm²)")
     ax.set_ylabel("Voltage (V)")
@@ -62,8 +80,8 @@ def measurement_loop():
                 print(f'{str(current[i])}A {str(voltage[i])}V')
                 start_time = time.time()  # Reset the start time
                 currentPlot.append(current[i] * 40)
+                update_table(i)
                 i += 1
-
                 # Update the plot with the latest data in the main thread
                 root.after(0, update_plot)
                 
@@ -79,11 +97,33 @@ def measurement_loop():
     stop_flag = True
     # When the loop exits, you can quit the Tkinter application
     root.quit()
-    
+ 
 # Create the main application window
 root = tk.Tk()
 root.title("Measurement Program")
 
+# Create a Treeview widget to display the table
+tree = ttk.Treeview(root, columns=("Current", "Voltage"), show="headings")
+tree.heading("Current", text="Current")
+tree.heading("Voltage", text="Voltage")
+tree.column("Current", width=100, minwidth=50, stretch=False)
+tree.column("Voltage", width=100, minwidth=50, stretch=False)
+tree.bind("<Configure>", update_column_widths)
+tree.pack()
+
+# Create a vertical scrollbar
+v_scrollbar = Scrollbar(root, orient="vertical", command=tree.yview)
+
+# Configure the Treeview to use the scrollbar
+tree.configure(yscrollcommand=v_scrollbar.set)
+
+# Pack the Treeview and scrollbar
+tree.pack(side="right", fill="both", expand=True)
+v_scrollbar.pack(side="right", fill="y")
+
+# Create Export voltage button
+export_button = tk.Button(root, text="Export Voltage", command=export_voltage)
+export_button.pack()
 # Create Start and Stop buttons
 start_button = tk.Button(root, text="Start Measurement", command=start_measurement)
 start_button.pack()
