@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import threading
 import tkinter as tk
-from tkinter import ttk, Scrollbar, scrolledtext, Entry, Label
+from tkinter import ttk, Scrollbar, scrolledtext, Entry, Label, filedialog
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
@@ -73,10 +73,11 @@ def update_column_widths(event):
 
 def export_voltage():
     global voltage
-    df = pd.DataFrame(voltage)
-    excel_file = 'output.xlsx'
-    df.to_excel(excel_file, index=False, header=False)
-    terminal_output.insert(tk.END, f'File Exported.')
+    file_path = filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Excel Files", "*.xlsx")], initialfile="output")
+    if file_path:
+        df = pd.DataFrame(voltage)
+        df.to_excel(file_path, index=False, header=False)
+        terminal_output.insert(tk.END, f'File Exported.')
 
 def update_plot():
     global voltage, ax, canvas, current, currentPlot
