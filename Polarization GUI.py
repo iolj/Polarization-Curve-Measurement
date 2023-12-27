@@ -1,12 +1,14 @@
 import time
+import json
 from datetime import date
 import numpy as np
 import pandas as pd
 import threading
 import tkinter as tk
-from tkinter import ttk, Scrollbar, scrolledtext
+from tkinter import ttk, Scrollbar, scrolledtext, Entry, Label
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
 # Initialize global variables
 stop_flag = False
 voltage = []
@@ -14,28 +16,49 @@ start_time = 0.0
 current = [0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0, 9.5, 10.0, 
            10.5, 11.0, 11.5, 12.0, 12.5, 13.0, 13.5, 14.0, 14.5, 15.0, 17.5, 20.0, 22.5, 25.0, 27.5, 30.0, 32.5, 35.0, 37.5, 40.0]
 currentPlot = []
-voltageLimit = 2.1
-activationTime = 1
-time_interval = 3
+
+def load_default_values():
+    default_values = {}
+    try:
+        with open("config.json", "r") as config_file:
+            default_values = json.load(config_file)
+    except FileNotFoundError:
+        # Handle the case when the config file is not found
+        pass
+    
+    return default_values
+
+def update_values():
+    value1 = voltageLimit_value.get()
+    value2 = activateTime_value.get()
+    value3 = interval_value.get()
+    # Process the values here as needed
+    terminal_output.insert(tk.END, f'Voltage limit = {value1}V\nActivation time = {value2}s\nInterval time = {value3}s\nValues updateted.\n')
+    # Add processing for additional inputs if needed
+
 def start_measurement():
     global stop_flag, voltage, start_time
+    for item in tree.get_children():
+        tree.delete(item)
     stop_flag = False
     start_time = time.time()
-
     # Create a thread for the measurement process
     measurement_thread = threading.Thread(target=measurement_loop)
     measurement_thread.daemon = True
     measurement_thread.start()
 
+def clear_terminal():
+    terminal_output.delete(1.0, tk.END)  # Delete all text in the widget
+        
 def stop_measurement():
     global stop_flag, voltage
     terminal_output.insert(tk.END, f'Manual stop, ending the program...\n')
-    terminal_output.insert(tk.END, f'voltage = {voltage}')
+    terminal_output.insert(tk.END, f'Voltage = {voltage}\n')
     df = pd.DataFrame(voltage)
     excel_file = 'output.xlsx'
     df.to_excel(excel_file, index=False, header=False)
     stop_flag = True
-    
+
 def update_table(i):
     global voltage, current
     tree.insert("", "end", values=(f"{current[i]} A", f"{voltage[i]} V"))
@@ -52,7 +75,8 @@ def export_voltage():
     df = pd.DataFrame(voltage)
     excel_file = 'output.xlsx'
     df.to_excel(excel_file, index=False, header=False)
-    
+    terminal_output.insert(tk.END, f'File Exported.')
+
 def update_plot():
     global voltage, ax, canvas, current, currentPlot
     ax.clear()
@@ -71,9 +95,9 @@ def measurement_loop():
     i = 0
     while not stop_flag and i < len(current):
         measured_voltage = 1
-        if measured_voltage < voltageLimit:
+        if measured_voltage < float(voltageLimit_value.get()):
             elapsed_time = time.time() - start_time
-            if elapsed_time >= time_interval:
+            if elapsed_time >= float(interval_value.get()):
                 measured_voltage = 1
                 voltage.append(measured_voltage)
                 # Append the measurement results to the terminal_output widget
@@ -91,7 +115,7 @@ def measurement_loop():
             time.sleep(0.1)
         else:
             terminal_output.insert(tk.END, f'Exceed voltage limit, ending the program...\n')
-            terminal_output.insert(tk.END, f'voltage = {voltage}')
+            terminal_output.insert(tk.END, f'Voltage = {voltage}')
             df = pd.DataFrame(voltage)
             excel_file = 'output.xlsx'
             df.to_excel(excel_file, index=False, header=False)
@@ -103,6 +127,30 @@ def measurement_loop():
 # Create the main application window
 root = tk.Tk()
 root.title("Measurement Program")
+
+# Create button to submit values
+update_button = tk.Button(root, text="Update Values", command=update_values)
+update_button.pack()
+
+# Create entry widgets
+default_values = load_default_values()
+voltageLimit_value = tk.StringVar(value=default_values.get("Voltage Limit", ""))
+activateTime_value = tk.StringVar(value=default_values.get("Activation Time", ""))
+interval_value = tk.StringVar(value=default_values.get("Interval Time", ""))
+
+voltageLimit_entry = Entry(root, textvariable=voltageLimit_value)
+voltageLimit_label = Label(root, text="Voltage Limit (V):")
+activateTime_entry = Entry(root, textvariable=activateTime_value)
+activateTime_label = Label(root, text="Activation Time (s):")
+interval_entry = Entry(root, textvariable=interval_value)
+interval_label = Label(root, text="Interval (s):")
+
+voltageLimit_label.pack()
+voltageLimit_entry.pack()
+activateTime_label.pack()
+activateTime_entry.pack()
+interval_label.pack()
+interval_entry.pack()
 
 # Create a Treeview widget to display the table
 tree = ttk.Treeview(root, columns=("Current", "Voltage"), show="headings")
@@ -126,6 +174,11 @@ v_scrollbar.pack(side="right", fill="y")
 # Create Export voltage button
 export_button = tk.Button(root, text="Export Voltage", command=export_voltage)
 export_button.pack()
+
+# Create clear terminal button
+clearTerminal_button = tk.Button(root, text="Clear Terminal", command=clear_terminal)
+clearTerminal_button.pack()
+
 # Create Start and Stop buttons
 start_button = tk.Button(root, text="Start Measurement", command=start_measurement)
 start_button.pack()
